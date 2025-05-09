@@ -52,7 +52,7 @@ def load_config(outf: tp.TextIO = sys.stdout) -> Config:
     """
     config = Config()
     path = Path(__file__).parents[1]/"config.json"
-    if path.exists():
+    if path.is_file():
         print("loading config file:", path, file=outf)
         with open(path, encoding="utf-8") as fp:
             obj: dict = json.load(fp)

@@ -32,14 +32,13 @@ def uninstall(
     if project_names:
         for name in project_names:
             path = config.proj_dir/name
-            if path.exists():
-                if path.is_dir():
-                    success = install.delete_dir(path) and success
-                else:
-                    success = install.delete_file(path) and success
+            if path.is_dir(follow_symlinks=False):
+                success = install.delete_dir(path) and success
+            elif path.exists(follow_symlinks=False):
+                success = install.delete_file(path) and success
     else:
         path = config.app_sup_dir
-        if path.exists():
+        if path.is_dir():
             success = install.delete_dir(path)
     return success
 

@@ -33,7 +33,7 @@ path = Path.home()/"Library"/"Preferences"/file_name
 
 # Attempt to load the JSON object from the file if it exists. Otherwise, begin
 # with an empty `dict` as the object.
-if path.exists():
+if path.is_file():
     with open(path, encoding="utf-8") as fp:
         obj = json.load(fp)
 else:

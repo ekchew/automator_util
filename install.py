@@ -64,7 +64,7 @@ class Install:
         config = load_config(self.outf)
         self.require_dir(config.app_sup_dir)
         success = self.sync(
-            src_path=Path(__file__).parent/"app_support",
+            src_path=Path(__file__).parent/"support"/"app_support",
             dst_path=config.app_sup_dir
         )
         for proj in self.projects:
@@ -106,7 +106,7 @@ class Install:
         # in copy mode.)
         self.require_dir(dst_path.parent)
 
-        if dst_path.exists():
+        if dst_path.exists(follow_symlinks=False):
             if dst_path.is_symlink():
 
                 # In this case, we have found a symlink already occupying the
@@ -261,7 +261,7 @@ class Install:
             return False
 
     def require_dir(self, dir_path: Path):
-        if not dir_path.exists():
+        if not dir_path.is_dir():
             print("making directory:", dir_path, file=self.outf)
             dir_path.mkdir()
 

@@ -42,7 +42,7 @@ if not file_name.endswith(".json"):
 path = Path.home()/"Library"/"Preferences"/file_name
 
 # If the file exists, load its JSON object contents.
-if path.exists():
+if path.is_file():
     with open(path, encoding="utf-8") as fp:
         obj = json.load(fp)
     val = obj.get(key, val)
