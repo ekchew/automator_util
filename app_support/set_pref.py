@@ -23,16 +23,27 @@ import sys
 
 
 file_name, key, val = sys.argv[1:4]
+key = key.strip()
+val = val.rstrip()
+
+# Build a path to the preferences file.
 if not file_name.endswith(".json"):
     file_name = file_name + ".json"
 path = Path.home()/"Library"/"Preferences"/file_name
+
+# Attempt to load the JSON object from the file if it exists. Otherwise, begin
+# with an empty `dict` as the object.
 if path.exists():
     with open(path, encoding="utf-8") as fp:
         obj = json.load(fp)
 else:
     obj = {}
-obj[str(key).strip()] = val.rstrip()
+
+# Update `obj` with the new key/value and write it in JSON format to the
+# preferences file.
+obj[key] = val
 with open(path, "w", encoding="utf-8") as fp:
     json.dump(obj, fp, ensure_ascii=False, indent=1)
-val = val.rstrip().replace("\n", r"\n")
-print(val)
+
+# Print `val` to stdout as a single line arg.
+print(val.replace("\n", r"\n"))

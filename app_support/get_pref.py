@@ -18,7 +18,9 @@ that can be used in subsequent Automator actions.
 
 Note that if the value contains any end-of-line characters, these will be
 escaped as \n to avoid printing multiple lines. You may need to unescape these
-later.
+later. (Automator treats each line printed to stdout as an individual arg being
+passed to the next action, and so having multiple lines would result in a list
+of args going out rather than a single one.)
 
 Requires: Python 3.4 or later (for pathlib)
 """
@@ -29,14 +31,21 @@ from pathlib import Path
 import sys
 
 
+# Parse the command line args.
 file_name, key = sys.argv[1:3]
-val = sys.argv[3] if len(sys.argv) > 3 else ""
+key = key.strip()
+val = sys.argv[3].rstrip() if len(sys.argv) > 3 else ""
+
+# Build a path to the preferences file.
 if not file_name.endswith(".json"):
     file_name = file_name + ".json"
 path = Path.home()/"Library"/"Preferences"/file_name
+
+# If the file exists, load its JSON object contents.
 if path.exists():
     with open(path, encoding="utf-8") as fp:
-        prefs = json.load(fp)
-    val = prefs.get(str(key).strip(), val)
-val = val.rstrip().replace("\n", r"\n")
-print(val)
+        obj = json.load(fp)
+    val = obj.get(key, val)
+
+# Print `val` to stdout as a single line arg.
+print(val.replace("\n", r"\n"))

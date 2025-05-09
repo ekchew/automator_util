@@ -2,6 +2,16 @@
 
 
 """
+This script manages the directories automator_util sets up within
+`~/Library/Application Support`. It can be run as a stand-alone command line
+tool or imported as a module built around an `Install` class.
+
+Globals:
+    g_debug:
+        When set True, any exceptions caught by this script or `uninstall.py`
+        will include tracebacks. (Even when False, you will still see error
+        messages printed to stderr.)
+
 Requires: Python 3.7 or later (for dataclasses)
 """
 
@@ -25,13 +35,33 @@ g_debug: bool = False
 
 @dataclass
 class Install:
+    """
+    This class implements most of the `install.py` script's command line
+    functionality. If you decide to import the script as a module instead,
+    instatiate the class with suitable args and then call the `run` method.
+
+    Attributes:
+        projects: optional source paths to project directories you want to link
+            Even if none are supplied, the `run` method will still set up the
+            base directory withing `Application Support`.
+        copy_mode: make copies rather than symlinking?
+        outf, errf: `run` and other methods print progress to these streams
+            They default to stdout and stderr, respectively.
+    """
     projects: Sequence[Path] = field(default_factory=list)
     copy_mode: bool = False
     outf: tp.TextIO = sys.stdout
     errf: tp.TextIO = sys.stderr
 
     def run(self) -> bool:
-        config = load_config()
+        """
+        This is the central method you want to call on an `Install` instance.
+        It returns False if any non-fatal errors are encountered. (A fatal
+        error would raise an Exception. This could happen, for example, if the
+        script is unable to make an `automator_util` directory within
+        `Application Support`.)
+        """
+        config = load_config(self.outf)
         self.require_dir(config.app_sup_dir)
         success = self.sync(
             src_path=Path(__file__).parent/"app_support",
@@ -48,8 +78,34 @@ class Install:
     def sync(
         self, src_path: Path, dst_path: Path, delete: bool = False
     ) -> bool:
+        """
+        This method is called by `run` to make sure a source path is
+        represented at its destination somewhere within `Application Support`
+        by either a symlink or a full up-to-date copy.
+
+        Args:
+            src_path: an external path outside `Application Support`
+                This must exist.
+            dst_path: the corresponding path within `Application Support`
+                This need not exist yet. If it does and is not a symlink, it
+                must match the type of `src_path`. If `src_path` is a
+                directory, `dst_path` had better be a directory also. Or they
+                had both better be files.
+            delete:
+                This option is only relevant in copy mode when you are dealing
+                with a directory. When set True, it will delete any items from
+                the destination directory (if it exists) that cannot be found
+                in the source. `run` does this automatically for project
+                directories.
+        """
         success = True
+
+        # To begin with, we need to make sure the parent directory of the
+        # destination exists. (This could be the `automator_util` or `proj`
+        # directory, or even some nested subdirectory when syncing a project
+        # in copy mode.)
         self.require_dir(dst_path.parent)
+
         if dst_path.exists():
             if not dst_path.is_symlink():
                 if src_path.is_dir():
@@ -163,7 +219,10 @@ class Install:
 def from_command_line(args: tp.Optional[Sequence[str]] = None) -> Install:
     ap = argparse.ArgumentParser(
         description="""
-            """
+            Running this script makes sure everything is set up within the
+            "~/Library/Application Support" directory. It prints progress to
+            stdout and error messages to stderr. Error codes include: 1=some
+            operation(s) failed, 2=script aborted on fatal exception."""
     )
     ap.add_argument(
         "-c", "--copy", action="store_true",
@@ -205,4 +264,4 @@ if __name__ == "__main__":
         print("ERROR:", err, file=sys.stderr)
         if g_debug:
             print_exc()
-        sys.exit(3)
+        sys.exit(2)

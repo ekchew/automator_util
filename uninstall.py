@@ -21,7 +21,7 @@ def uninstall(
     errf: tp.TextIO = sys.stderr
 ) -> bool:
     success = True
-    config = load_config()
+    config = load_config(outf)
     install = Install(outf=outf, errf=errf)
     if project_names:
         for name in project_names:
