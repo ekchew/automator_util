@@ -2,6 +2,12 @@
 
 
 """
+This script basically undoes what `install.py` does. In fact, it even imports
+the latter as a module to use its deleting functions. As a command line script,
+it calls the `uninstall` function to remove either specific projects or, with
+no project names given, the entire `automator_util` directory within
+`Application Support`.
+
 Requires: Python 3.7 or later (for install.py)
 """
 

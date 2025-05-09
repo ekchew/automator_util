@@ -108,40 +108,77 @@ class Install:
 
         if dst_path.exists():
             if dst_path.is_symlink():
-                replace = True
+
+                # In this case, we have found a symlink already occupying the
+                # destination path. The only reason NOT to replace it is if it
+                # still points to the new src_path and we are not in copy mode.
                 try:
-                    if not self.copy_mode and \
+                    replace = self.copy_mode or not \
                         dst_path.resolve(strict=True).samefile(
-                        src_path.resolve(strict=True)
-                    ):
-                        replace = False
-                except Exception: pass
+                            src_path.resolve(strict=True))
+                except Exception:
+                    # An exception could be raised if either of the paths
+                    # cannot be fully resolved and compared. In this case, we
+                    # should replace the symlink regardless. It could, for
+                    # example, be that the source directory had been moved and
+                    # the symlink is now broken, in which case it is likely
+                    # that this syncing operation is an attempt to repair it.
+                    replace = True
+
+                # To replace the link, we first delete it and then recursively
+                # call `sync` again on the same paths to make a new link or
+                # copy.
                 if replace:
                     success = self.delete_file(dst_path) and \
                         self.sync(src_path, dst_path, delete)
+
+            elif src_path.is_dir():
+
+                # This is the most complex situation in which we are syncing
+                # a directory which already exists. In this case, we need to
+                # walk the directory tree and carefully examine what, if
+                # anything, has changed.
+                #
+                # First obtain listings of both the source and destination
+                # directories as Python sets for comparison purposes.
+                src_set = set(src_path.iterdir())
+                dst_set = set(dst_path.iterdir())
+
+                # Walk the source directory set, syncing all items within.
+                for subpath in src_set:
+                    success = self.sync(
+                        src_path=subpath,
+                        dst_path=dst_path/subpath.name,
+                        delete=delete
+                    ) and success
+
+                # If delete mode was specified, we need to remove all items in
+                # the destination set that are not also in the source.
+                if delete:
+                    for subpath in dst_set - src_set:
+                        if subpath.is_dir():
+                            success = self.delete_dir(subpath) and success
+                        else:
+                            success = self.delete_file(subpath) and success
+
             else:
-                if src_path.is_dir():
-                    src_set = set(src_path.iterdir())
-                    dst_set = set(dst_path.iterdir())
-                    for subpath in src_set:
-                        success = self.sync(
-                            src_path=subpath,
-                            dst_path=dst_path/subpath.name,
-                            delete=delete
-                        ) and success
-                    if delete:
-                        for subpath in dst_set - src_set:
-                            if subpath.is_dir():
-                                success = self.delete_dir(subpath) and success
-                            else:
-                                success = self.delete_file(subpath) and success
-                else:
-                    src_stat = src_path.stat()
-                    dst_stat = dst_path.stat()
-                    if src_stat.st_size != dst_stat.st_size or \
-                            src_stat.st_mtime > dst_stat.st_mtime:
-                        success = self.delete_file(dst_path) \
-                            and self.copy_file(src_path, dst_path)
+
+                # In comparing 2 files, we check to see if they are different
+                # sizes or the source has been modified more recently than the
+                # destination.
+                src_stat = src_path.stat()
+                dst_stat = dst_path.stat()
+                if src_stat.st_size != dst_stat.st_size or \
+                        src_stat.st_mtime > dst_stat.st_mtime:
+
+                    # That being the case, we delete the destination and
+                    # re-copy the source.
+                    success = self.delete_file(dst_path) \
+                        and self.copy_file(src_path, dst_path)
+
+        # The remaining cases cover what to do when there is no destination
+        # file or directory. We either copy or symlink the source to the
+        # destination in that case.
         elif self.copy_mode:
             if src_path.is_dir():
                 success = self.copy_dir(src_path, dst_path)
@@ -151,6 +188,7 @@ class Install:
             success = self.make_symlink(
                 link_path=dst_path, target_path=src_path
             )
+
         return success
 
     def copy_file(self, src_path: Path, dst_path: Path) -> bool:
@@ -184,7 +222,7 @@ class Install:
     def delete_file(self, path: Path) -> bool:
         print("deleting file", quoted_path(path), file=self.outf)
         try:
-            shutil.unlink(path)
+            path.unlink()
             return True
         except Exception as err:
             print("ERROR:", err, file=self.errf)
