@@ -107,7 +107,19 @@ class Install:
         self.require_dir(dst_path.parent)
 
         if dst_path.exists():
-            if not dst_path.is_symlink():
+            if dst_path.is_symlink():
+                replace = True
+                try:
+                    if not self.copy_mode and \
+                        dst_path.resolve(strict=True).samefile(
+                        src_path.resolve(strict=True)
+                    ):
+                        replace = False
+                except Exception: pass
+                if replace:
+                    success = self.delete_file(dst_path) and \
+                        self.sync(src_path, dst_path, delete)
+            else:
                 if src_path.is_dir():
                     src_set = set(src_path.iterdir())
                     dst_set = set(dst_path.iterdir())
