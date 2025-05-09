@@ -160,7 +160,7 @@ class Install:
             dir_path.mkdir()
 
 
-def from_command_line(args: Sequence[str] | None = None) -> Install:
+def from_command_line(args: tp.Optional[Sequence[str]] = None) -> Install:
     ap = argparse.ArgumentParser(
         description="""
             """
