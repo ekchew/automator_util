@@ -59,7 +59,7 @@ By convention, preferences file names in macOS should begin with a domain name y
 
     ${HOME}/Library/Preferences/com.my_domain.example.json
 
-The next action is an Ask for Text requessting that the user enter their name. The default name should read `your name` the first time the workflow is run.
+The next action is an Ask for Text requesting that the user enter their name. The default name should read `your name` the first time the workflow is run.
 
 The last action is another Run Shell Script. This time, it executes `set_pref.py` instead:
 
