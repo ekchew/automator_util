@@ -15,8 +15,10 @@ Globals:
 Requires: Python 3.7 or later (for dataclasses)
 """
 
-
-from support.config import load_config
+try:
+    from support.config import load_config
+except ModuleNotFoundError:  # package-loading case
+    from .support.config import load_config
 
 import argparse
 from collections.abc import Sequence
